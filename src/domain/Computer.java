@@ -1,49 +1,88 @@
 package domain;
 
-import datasource.ProductUnitOfWork;
+import concurrency.LockManager;
+import datasource.UnitOfWork;
 
 public class Computer extends Product {
 
-  private static final String categoryString = "Computer";
-  private String cpu;
-  private int diskVolume;
+    public static final String CategoryString = "PC";
+    private String cpu;
+    private int diskVolume;
 
-  public Computer(int productID, String name, String category, double price, int stockNumber, String image, boolean newCreated) {
-    super(productID, name, category, price, stockNumber, image, newCreated);
-  }
-
-  public String getCpu() {
-    if (cpu == null) {
-      load();
+    public Computer(int productID, String name, String category, double price, int stockNumber, String image, boolean newCreated){
+        super(productID, name, category, price, stockNumber, image, newCreated);
     }
-    return cpu;
-  }
 
-  /* */
-  public void setCpu(String cpu) {
-    if (this.cpu != null) {
-      ProductUnitOfWork.getCurrent().registerDirtyObject(this);
+    public String getCpu() {
+    	try {
+			LockManager.getInstance().acquireReadLock(this);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        if (cpu == null) {
+            load();
+        }
+        String cpu = this.cpu;
+        LockManager.getInstance().releaseReadLock(this);
+        return cpu;
     }
-    this.cpu = cpu;
-  }
 
-  public int getDiskVolume() {
-    if (diskVolume == 0) {
-      load();
+    /* */
+    public void setCpu(String cpu)  {
+    	try {
+			LockManager.getInstance().acquireWriteLock(this);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        if (this.cpu != null) {
+        	UnitOfWork uow = UnitOfWork.getCurrent();
+        	if(uow == null) {
+        		uow.newCurrent();
+        	}
+            UnitOfWork.getCurrent().registerDirtyObject(this);
+        }
+        this.cpu = cpu;
+        LockManager.getInstance().releaseWriteLock(this);
     }
-    return diskVolume;
-  }
 
-  public void setDiskVolume(int diskVolume) {
-    if (this.diskVolume != 0) {
-      ProductUnitOfWork.getCurrent().registerDirtyObject(this);
+    public int getDiskVolume()  {
+    	try {
+			LockManager.getInstance().acquireReadLock(this);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        if (diskVolume == 0) {
+            load();
+        }
+        int diskVolume = this.diskVolume;
+        LockManager.getInstance().releaseReadLock(this);
+        return diskVolume;
     }
-    this.diskVolume = diskVolume;
-  }
 
-  @Override
-  public String getCategory() {
-    return categoryString;
-  }
+    public void setDiskVolume(int diskVolume) {
+    	try {
+			LockManager.getInstance().acquireWriteLock(this);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        if (this.diskVolume != 0) {
+        	UnitOfWork uow = UnitOfWork.getCurrent();
+        	if(uow == null) {
+        		uow.newCurrent();
+        	}
+            UnitOfWork.getCurrent().registerDirtyObject(this);
+        }
+        this.diskVolume = diskVolume;
+        LockManager.getInstance().releaseWriteLock(this);
+    }
+
+    @Override
+    public String getCategory() {
+        return CategoryString;
+    }
 
 }

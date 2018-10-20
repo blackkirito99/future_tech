@@ -1,9 +1,15 @@
 package domain;
 
-public class Retailer extends User {
+import auth.AppSession;
 
-  public Retailer(int id, String username, String type, String email, String avatar, boolean newCreated) {
-    super(id, username, type, email,avatar, newCreated);
-  }
+public class Retailer extends User {
+    public static final String TypeString = AppSession.RETAILER_ROLE;
+    public Retailer(int id, String username, String type, String email, String avatar, boolean newCreated) {
+        super(id, username, type, email, avatar, newCreated);
+    }
+    @Override
+    public String getType() {
+        return TypeString;
+    }
 
 }

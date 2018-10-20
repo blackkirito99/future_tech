@@ -1,5 +1,6 @@
 package datasource;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -9,173 +10,326 @@ import java.util.List;
 import domain.Computer;
 import domain.Product;
 import domain.Smartphone;
-import domain.User;
 
-public class ProductMapper {
+public class ProductMapper implements Mapper <Product> {
 
-  private static final String initialLazyLoadStatementString = "SELECT productID, name, category, price, number, image"
-      + " from APP.products" + " WHERE productID = ?";
-  private static final String updateStatementString = "UPDATE APP.products"
-      + " set name = ?, brand = ?, category  = ?, price = ?, number = ?, cpu = ?, volume = ?, scrrenSize = ?"
-      + " WHERE productID = ?";
-  private static final String initialLazyLoadAllProductsStatement = "SELECT productID, name, category, price, number, image"
-      + " from APP.products";
-  private static final String fullLazyLoadStatementString = "SELECT brand, cpu, volume, screenSize"
-      + " from APP.products" + " WHERE productID = ?";
-  private static final String ComputerCategoryString = "PC";
-  private static final String SmartPhoneCategoryString = "SM";
+    private static final String initialLazyLoadStatementString = "SELECT productID, name, category, price, number, image" +
+    " from products" + " WHERE productID = ?";
+    private static final String initialLazyLoadAllProductsStatement = "SELECT productID, name, category, price, number, image" +
+    " from products";
+    private static final String initialLazyLoadBrandStatementString = "SELECT productID, name, category, price, number, image" +
+    	    " from products" + " WHERE brand = ?";
+    private static final String initialLazyLoadCategoryStatementString = "SELECT productID, name, category, price, number, image" +
+    	    " from products" + " WHERE category = ?";
+    private static final String initialLazyLoadQueryStatementString = "SELECT productID, name, category, price, number, image" +
+    	    " from products" + " WHERE UPPER(name) LIKE UPPER(?) OR UPPER(category) LIKE UPPER(?)";
+    private static final String fullLazyLoadStatementString = "SELECT brand, cpu, volume, screenSize" +
+    " from products" + " WHERE productID = ?";
+    private static final String updateStatementString = "UPDATE products" +
+    " set name = ?, brand = ?, category  = ?, price = ?, number = ?, cpu = ?, volume = ?, screenSize = ?, image = ?" +
+    " WHERE productID = ?";
+    private static final String insertStatementString = "INSERT INTO products" + " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    private static final String deleteStatementString1 = "DELETE FROM cartItems WHERE productID = ?";
+    private static final String deleteStatementString2 = "DELETE FROM orderItems WHERE productID = ?";
+    private static final String deleteStatementString3 = "DELETE FROM products" +
+    " WHERE productID = ?";
+    private static final String ComputerCategoryString = "PC";
+    private static final String SmartPhoneCategoryString = "SM";
 
-  public static Product getProduct(int id) {
-    Product result = Registry.getProduct(id);
-    if (result != null) {
-      return result;
+    private static ProductMapper mapper;
+
+    public static ProductMapper getInstance() {
+        if (ProductMapper.mapper == null) {
+            ProductMapper.mapper = new ProductMapper();
+        }
+        return ProductMapper.mapper;
     }
-    PreparedStatement findStatement = null;
-    ResultSet rs = null;
-    try {
-      findStatement = DBConnection.prepare(initialLazyLoadStatementString);
-      findStatement.setInt(1, id);
-      rs = findStatement.executeQuery();
-      rs.next();
-      result = lazyLoadGhost(rs);
-    } catch (SQLException e) {
-      e.printStackTrace();
+    public Product find(String id, String id2) {
+        Product result = Registry.getProduct(Integer.parseInt(id));
+        if (result != null) {
+            return result;
+        }
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+        	conn = DBConnection.getDBConnection();
+            ps = DBConnection.prepare(initialLazyLoadStatementString, conn);
+            ps.setInt(1, Integer.parseInt(id));
+            rs = ps.executeQuery();
+            rs.next();
+            Product product = lazyLoadGhost(rs);
+            ps.close();
+            return product;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try { rs.close(); } catch (Exception e) { /* ignored */ }
+            try { ps.close(); } catch (Exception e) { /* ignored */ }
+            try { conn.close(); } catch (Exception e) { /* ignored */ }
+        }
+        return null;
     }
-    return result;
-  }
+    
 
-  public static void getFullProduct(int id) {
-    // execute lazy load first if product does not exist in registry
-    Product result = Registry.getProduct(id);
-    if (result == null) {
-      getProduct(id);
+    public List<Product> findBrand(String brand) {
+    	List <Product> result = new ArrayList <> ();
+    	Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+        	conn = DBConnection.getDBConnection();
+            ps = DBConnection.prepare(initialLazyLoadBrandStatementString, conn);
+            ps.setString(1, brand);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                result.add(lazyLoadGhost(rs));
+            }
+            ps.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try { rs.close(); } catch (Exception e) { /* ignored */ }
+            try { ps.close(); } catch (Exception e) { /* ignored */ }
+            try { conn.close(); } catch (Exception e) { /* ignored */ }
+        }
+        return result;
     }
-    // then executes full load for remaining fields
-    PreparedStatement findStatement = null;
-    ResultSet rs = null;
-    try {
-      findStatement = DBConnection.prepare(fullLazyLoadStatementString);
-      findStatement.setInt(1, id);
-      rs = findStatement.executeQuery();
-      rs.next();
-      fullLoadGhost(rs, id);
-    } catch (SQLException e) {
-      e.printStackTrace();
+    public List<Product> findCategory(String category) {
+    	List <Product> result = new ArrayList <> ();
+    	Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+        	conn = DBConnection.getDBConnection();
+            ps = DBConnection.prepare(initialLazyLoadCategoryStatementString, conn);
+            ps.setString(1, category);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                result.add(lazyLoadGhost(rs));
+            }
+            ps.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try { rs.close(); } catch (Exception e) { /* ignored */ }
+            try { ps.close(); } catch (Exception e) { /* ignored */ }
+            try { conn.close(); } catch (Exception e) { /* ignored */ }
+        }
+        return result;
     }
-  }
-
-  public static List<Product> getAllProducts() {
-    List<Product> result = new ArrayList<>();
-    try {
-      PreparedStatement findStatement = DBConnection.prepare(initialLazyLoadAllProductsStatement);
-      ResultSet rs = findStatement.executeQuery();
-      while (rs.next()) {
-        result.add(lazyLoadGhost(rs));
+    
+    public List<Product> findQuery(String query) {
+      List <Product> result = new ArrayList <> ();
+      Connection conn = null;
+      PreparedStatement ps = null;
+      ResultSet rs = null;
+      try {
+    	  conn = DBConnection.getDBConnection();
+          ps = DBConnection.prepare(initialLazyLoadQueryStatementString, conn);
+          ps.setString(1, "%" + query + "%");
+          ps.setString(2, "%" + query + "%");
+          rs = ps.executeQuery();
+          while (rs.next()) {
+              result.add(lazyLoadGhost(rs));
+          }
+      } catch (SQLException e) {
+          e.printStackTrace();
+      } finally {
+          try { rs.close(); } catch (Exception e) { /* ignored */ }
+          try { ps.close(); } catch (Exception e) { /* ignored */ }
+          try { conn.close(); } catch (Exception e) { /* ignored */ }
       }
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-    return result;
-  }
-
-  private static Product lazyLoadGhost(ResultSet rs) throws SQLException {
-    int id = rs.getInt(1);
-    Product result = Registry.getProduct(id);
-    if (result != null) {
       return result;
-    }
-    String name = rs.getString(2);
-    String category = rs.getString(3);
-    double price = rs.getDouble(4);
-    int stockNumber = rs.getInt(5);
-    String image = rs.getString(6);
-    if (category.equals(ComputerCategoryString)) {
-      result = new Computer(id, name, category, price, stockNumber, image, false);
-    } else if (category.equals(SmartPhoneCategoryString)) {
-      result = new Smartphone(id, name, category, price, stockNumber, image, false);
-    }
-    Registry.addProduct(result);
-    return result;
   }
 
-  private static void fullLoadGhost(ResultSet rs, int id) throws SQLException {
-    Product product = Registry.getProduct(id);
-    if (product == null) {
-      // error
-      return;
+    public void getFull(String id) {
+        // execute lazy load first if product does not exist in registry
+        Product result = Registry.getProduct(Integer.parseInt(id));
+        if (result == null) {
+            find(id, "");
+            System.out.println("product unexpected action");
+            result = Registry.getProduct(Integer.parseInt(id));
+        }
+        // then executes full load for remaining fields
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+        	conn = DBConnection.getDBConnection();
+            ps = DBConnection.prepare(fullLazyLoadStatementString, conn);
+            ps.setInt(1, Integer.parseInt(id));
+            rs = ps.executeQuery();
+            rs.next();
+            fullLoadGhost(rs, Integer.parseInt(id));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try { rs.close(); } catch (Exception e) { /* ignored */ }
+            try { ps.close(); } catch (Exception e) { /* ignored */ }
+            try { conn.close(); } catch (Exception e) { /* ignored */ }
+        }
     }
-    product.setBrand(rs.getString(1));
-    if (product.getCategory().equals(ComputerCategoryString)) {
-      ((Computer) product).setCpu(rs.getString(2));
-      ((Computer) product).setDiskVolume(rs.getInt(3));
-    } else if (product.getCategory().equals(SmartPhoneCategoryString)) {
-      ((Smartphone) product).setScreenSize(rs.getDouble(4));
+
+    public List <Product> findAll() {
+        List <Product> result = new ArrayList <> ();
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+        	conn = DBConnection.getDBConnection();
+            ps = DBConnection.prepare(initialLazyLoadAllProductsStatement, conn);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                result.add(lazyLoadGhost(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try { rs.close(); } catch (Exception e) { /* ignored */ }
+            try { ps.close(); } catch (Exception e) { /* ignored */ }
+            try { conn.close(); } catch (Exception e) { /* ignored */ }
+        }
+        return result;
     }
-  }
 
-  // no lazy load
-  /*
-   * public static Product getProduct(int id) { Product result =
-   * Registry.getProduct(id); if(result != null) { return result; }
-   * PreparedStatement findStatement= null; ResultSet rs = null; try {
-   * findStatement = DBConnection.prepare(findStatementString);
-   * findStatement.setInt(1, id); rs = findStatement.executeQuery(); rs.next();
-   * result = load(rs); }catch (SQLException e) {
-   * 
-   * } return result; }
-   * 
-   * 
-   * public static List<Product> getAvailableProducts() { List<Product> result =
-   * new ArrayList<>(); try { PreparedStatement findStatement =
-   * DBConnection.prepare(findAvailableProductsStatement); ResultSet rs =
-   * findStatement.executeQuery(); while(rs.next()) {
-   * result.add(lazyLoadGhost(rs)); } }catch (SQLException e) {
-   * 
-   * } return result; }
-   * 
-   * private static Product load(ResultSet rs) throws SQLException { int id =
-   * rs.getInt(1); Product result = Registry.getProduct(id); if(result != null) {
-   * return result; } String name = rs.getString(2); String brand =
-   * rs.getString(3); String category = rs.getString(4); double price =
-   * rs.getDouble(5); int stock = rs.getInt(6);
-   * if(category.equals(ComputerCategoryString)) { String cpu = rs.getString(7);
-   * int diskVolume = rs.getInt(8); result = new Computer(id, name, brand,
-   * category, price, stock, cpu, diskVolume); }else
-   * if(category.equals(SmartPhoneCategoryString)) { double screenSize =
-   * rs.getDouble(9); result = new Smartphone(id, name, brand, category, price,
-   * stock, screenSize); } Registry.addProduct(result); return result; }
-   */
-
-  /* For feature B */
-
-  public static void update(Product product) {
-    PreparedStatement updateStatement = null;
-    try {
-      updateStatement = DBConnection.prepare(updateStatementString);
-      updateStatement.setInt(1, product.getProductID());
-      updateStatement.setString(2, product.getName());
-      updateStatement.setString(3, product.getBrand());
-      updateStatement.setString(4, product.getCategory());
-      updateStatement.setDouble(5, product.getPrice());
-      updateStatement.setInt(6, product.getStockNumber());
-      if (product.getCategory().equals(ComputerCategoryString)) {
-        updateStatement.setString(7, ((Computer) product).getCpu());
-        updateStatement.setInt(8, ((Computer) product).getDiskVolume());
-      } else if (product.getCategory().equals(SmartPhoneCategoryString)) {
-        updateStatement.setDouble(9, ((Smartphone) product).getScreenSize());
-      }
-      updateStatement.execute();
-    } catch (Exception e) {
-      e.printStackTrace();
+    private Product lazyLoadGhost(ResultSet rs) throws SQLException {
+        int id = rs.getInt(1);
+        Product result = Registry.getProduct(id);
+        if (result != null) {
+            return result;
+        }
+        String name = rs.getString(2);
+        String category = rs.getString(3);
+        double price = rs.getDouble(4);
+        int stockNumber = rs.getInt(5);
+        String image = rs.getString(6);
+        if (category.equals(ComputerCategoryString)) {
+            result = new Computer(id, name, category, price, stockNumber, image, false);
+        } else if (category.equals(SmartPhoneCategoryString)) {
+            result = new Smartphone(id, name, category, price, stockNumber, image, false);
+        }
+        Registry.addProduct(result);
+        return result;
     }
-  }
 
-  public static void add(Product product) {
+    private void fullLoadGhost(ResultSet rs, int id) throws SQLException {
+        Product product = Registry.getProduct(id);
+        if (product == null) {
+            // error
+            return;
+        }
+        product.setBrand(rs.getString(1));
+        if (product.getCategory().equals(ComputerCategoryString)) {
+            ((Computer) product).setCpu(rs.getString(2));
+            ((Computer) product).setDiskVolume(rs.getInt(3));
+        } else if (product.getCategory().equals(SmartPhoneCategoryString)) {
+            ((Smartphone) product).setScreenSize(rs.getDouble(4));
+        }
+    }
+    /* For feature B */
 
-  }
+    public void update(Product product) {
+    	Connection conn = null;
+        PreparedStatement ps = null;
+        try {
+        	conn = DBConnection.getDBConnection();
+            ps = DBConnection.prepare(updateStatementString, conn);
+            ps.setString(1, product.getName());
+            ps.setString(2, product.getBrand());
+            String category = product.getCategory();
+            ps.setString(3, category);
+            ps.setDouble(4, product.getPrice());
+            ps.setInt(5, product.getStockNumber());
+            if (category.equals(ComputerCategoryString)) {
+                ps.setString(6, ((Computer) product).getCpu());
+                ps.setInt(7, ((Computer) product).getDiskVolume());
+                ps.setDouble(8, -1);
+            } else if (category.equals(SmartPhoneCategoryString)) {
+                ps.setString(6, "null");
+                ps.setInt(7, -1);
+                ps.setDouble(8, ((Smartphone) product).getScreenSize());
+            }
+            ps.setString(9, product.getImage());
+            ps.setInt(10, product.getProductID());
+            ps.execute();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try { ps.close(); } catch (Exception e) { /* ignored */ }
+            try { conn.close(); } catch (Exception e) { /* ignored */ }
+        }
+    }
 
-  public static void delete(Product product) {
+    public void insert(Product product) {
+    	Connection conn = null;
+        PreparedStatement ps = null;
+        try {
+        	conn = DBConnection.getDBConnection();
+            ps = DBConnection.prepare(insertStatementString, conn);
+            ps.setInt(1, product.getProductID());
+            ps.setString(2, product.getName());
+            ps.setString(3, product.getBrand());
+            String category = product.getCategory();
+            ps.setString(4, category);
+            ps.setDouble(5, product.getPrice());
+            ps.setInt(6, product.getStockNumber());
+            if (category.equals(ComputerCategoryString)) {
+                ps.setString(7, ((Computer) product).getCpu());
+                ps.setInt(8, ((Computer) product).getDiskVolume());
+                ps.setDouble(9, -1);
+            } else if (category.equals(SmartPhoneCategoryString)) {
+                ps.setString(7, "null");
+                ps.setInt(8, -1);
+                ps.setDouble(9, ((Smartphone) product).getScreenSize());
+            }
+            ps.setString(10, product.getImage());
+            ps.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try { ps.close(); } catch (Exception e) { /* ignored */ }
+            try { conn.close(); } catch (Exception e) { /* ignored */ }
+        }
+    }
 
-  }
+    public void delete(Product product) {
+    	Connection conn = null;
+        PreparedStatement ps = null;
+        try {
+        	conn = DBConnection.getDBConnection();
+            ps = DBConnection.prepare(deleteStatementString1, conn);
+            ps.setInt(1, product.getProductID());
+            ps.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try { ps.close(); } catch (Exception e) { /* ignored */ }
+            try { conn.close(); } catch (Exception e) { /* ignored */ }
+        }
+        try {
+        	conn = DBConnection.getDBConnection();
+            ps = DBConnection.prepare(deleteStatementString2, conn);
+            ps.setInt(1, product.getProductID());
+            ps.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try { ps.close(); } catch (Exception e) { /* ignored */ }
+            try { conn.close(); } catch (Exception e) { /* ignored */ }
+        }
+        try {
+        	conn = DBConnection.getDBConnection();
+            ps = DBConnection.prepare(deleteStatementString3, conn);
+            ps.setInt(1, product.getProductID());
+            ps.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try { ps.close(); } catch (Exception e) { /* ignored */ }
+            try { conn.close(); } catch (Exception e) { /* ignored */ }
+        }
+        Registry.deleteProduct(product);
+    }
 
 }

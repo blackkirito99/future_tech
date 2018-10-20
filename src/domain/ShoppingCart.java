@@ -1,107 +1,84 @@
 package domain;
-
-import java.util.ArrayList;
 import java.util.List;
 
-import datasource.CartMapper;
+import datasource.CartLockingMapper;
 
 public class ShoppingCart {
 
-  private List<CartItem> items;
-  private int CustomerID;
+    private List < CartItem > items;
+    private int customerID;
 
-  public ShoppingCart(int CustomerID) {
-    //this.items = new ArrayList<>();
-    this.items = CartMapper.findCartOf(CustomerID);
-    if (this.items == null) {
-      this.items = new ArrayList<>();
+    public ShoppingCart(int customerID) {
+        this.customerID = customerID;
+        fetchItemsInCart();
     }
-    this.CustomerID = CustomerID;
-  }
 
-  public List<CartItem> getAllItemsInCart() {
-    return items;
-  }
-
-  //get only those with more than 1 count
-  public List<CartItem> getValidCartItems(){
-     List<CartItem> result = new ArrayList<>();
-     for(CartItem item : items) {
-         if(item.getQuantity() > 0) {
-             result.add(item);
-         }
-     }
-     return result;
-  }
-
-  public void setItemsInCart(List<CartItem> items) {
-    this.items = items;
-  }
-
-  public void addItem(Product item, int quantity) {
-    for (CartItem cartItem : items) {
-      if (cartItem.getProductID() == item.getProductID()) {
-        cartItem.addQuantity(quantity);
-        // test
-        CartMapper.update(cartItem);
-        return;
-      }
-    }
-    items.add(new CartItem(CustomerID, item.getProductID(), quantity, true));
-  }
-
-  public void decreaseItemCount(Product item, int quantity) {
-    int deleteIndex = -1;
-    for (CartItem cartItem : items) {
-      if (cartItem.getProductID() == item.getProductID()) {
-        if (cartItem.removeQuantity(quantity)) {
-          items.indexOf(cartItem);
+    public List < CartItem > getAllItemsInCart() {
+        for (int i = 0; i < items.size(); i++) {
+            if (items.get(i).getQuantity() <= 0) {
+                items.remove(i);
+                i--;
+            }
         }
-        break;
-      }
+        return items;
     }
-    if (deleteIndex > 0) {
-      items.remove(deleteIndex);
+
+
+    public void fetchItemsInCart() {
+        this.items = CartLockingMapper.getInstance().findCartOfCustomer(customerID);
     }
-  }
 
-  public void increaseItemCount(Product item, int quantity) {
-    for (CartItem cartItem : items) {
-      if (cartItem.getProductID() == item.getProductID()) {
-        cartItem.addQuantity(quantity);
-        break;
-      }
+    public static ShoppingCart getCartOf(int customerID) {
+        ShoppingCart result = new ShoppingCart(customerID);
+        List < CartItem > items = CartLockingMapper.getInstance().findCartOfCustomer(customerID);
+        result.setItemsInCart(items);
+        return result;
     }
-    // guard for quantity over stock count
-  }
+
+    public void setItemsInCart(List < CartItem > items) {
+        this.items = items;
+    }
+
+    public void addItem(Product item, int quantity) {
+        for (CartItem cartItem: items) {
+            if (cartItem.getProductID() == item.getProductID()) {
+                cartItem.addQuantity(quantity);
+                return;
+            }
+        }
+        items.add(new CartItem(customerID, item.getProductID(), quantity, true));
+    }
+
+    public void decreaseItemCount(Product item, int quantity) {
+        int deleteIndex = -1;
+        for (CartItem cartItem: items) {
+            if (cartItem.getProductID() == item.getProductID()) {
+                if (cartItem.removeQuantity(quantity)) {
+                    items.indexOf(cartItem);
+                }
+                break;
+            }
+        }
+        if (deleteIndex > 0) {
+            items.remove(deleteIndex);
+        }
+    }
+
+    public void increaseItemCount(Product item, int quantity) {
+        for (CartItem cartItem: items) {
+            if (cartItem.getProductID() == item.getProductID()) {
+                cartItem.addQuantity(quantity);
+                break;
+            }
+        }
+    }
 
 
-  public static ShoppingCart getCartOf(int userID) {
-    ShoppingCart result = new ShoppingCart(userID);
-    List<CartItem> items = CartMapper.findCartOf(userID);
-    result.setItemsInCart(items);
-    return result;
-  }
+    public int getCustomerID() {
+        return customerID;
+    }
 
-  public void updateShoppingCart(int userID, Product item) {
-//        CartFinder finder = new CartFinder();
-//        CartItemGateway cartRecord = finder.findItem(userID, Integer.parseInt(item.getProductID()));
-//        if (cartRecord == null) {
-//                cartRecord = new CartItemGateway(userID, Integer.parseInt(item.getProductID()),items.get(item));
-//                cartRecord.insert();
-//        }
-//        else{
-//            cartRecord.setQuantity(items.get(item));
-//
-//            cartRecord.updateQuantity();
-//        }
-  }
-
-  public int getCustomerID() {
-    return CustomerID;
-  }
-
-  public void setCustomerID(int customerID) {
-    CustomerID = customerID;
-  }
+    public void setCustomerID(int customerID) {
+        this.customerID = customerID;
+    }
 }
