@@ -40,7 +40,7 @@
 ### Feature A-1
 #### I am a new customer of Future Tech. I want to register a new account and then purchase one Macbook Pro and one iPhone X from the website.
 #### Test cases:
-##### 1. Entering Login page by clicking â€œUserâ€ icon on the top right corner of the page
+##### 1. Entering Login page by clicking "User" icon on the top right corner of the page
 ##### 2. Register a new customer account by clicking â€œRegisterâ€ at the bottom of  the Login page
 ##### 3. â€œLoginâ€ using username and password as just created
 ##### 4. Browse website to find the required product, several approaches can be used for the product a. Browse all products by clicking â€œAll productâ€ in index page and find it myself b. Browse products based on category by clicking â€œBrowse by Categoryâ€ in index page and find among them c. Browse products based on brand by clicking â€œBrowse by Storeâ€ in index page and find among them d. Search aimed products by entering query in input bar on the top of the page
@@ -60,7 +60,7 @@
 #### I am a retailer and I want to add new product to the store, at the same time, make some update to existing products and delete outdated product from the store.
 #### Test cases:
 ##### 1. Entering Login page by clicking â€œUserâ€ icon on the top right corner of the page;
-##### 2. â€œLoginâ€ using â€œadminâ€(username), â€œadminâ€(password) to enter Retailer account;
+##### 2. "Login" using â€œadminâ€(username), â€œadminâ€(password) to enter Retailer account;
 ##### 3. Add new product by click â€œAdd new productâ€;
 ##### 4. Enter in all information and click â€œCreateâ€;
 ##### 5. Back to store page by click top left icon;
@@ -72,4 +72,4 @@
 ##### 11.Go to user detail page by clicking â€œUserâ€ icon on the top right corner of the page;
 ##### 12.In the User detail page, click â€œLogoutâ€ to safely finish the whole activities.
 ###### \*All modification of products can be observed in non-retailer website (non-login user and customer).
-###### \*\*Click â€œCartâ€ icon will be redirected to forbidden page which shows retailer doesnâ€™t has that permission.
+###### \*\*Click "Cart" icon will be redirected to forbidden page which shows retailer doesnâ€™t has that permission.
